@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LOL Button</title>
+</head>
+<body>
+  <button onclick="playLOL()">LOL Button</button>
+  <audio id="lolSound" src="ksi-lol.mp3"></audio>
+
+  <script>
+    function playLOL() {
+      const audio = document.getElementById('lolSound');
+      if (audio.readyState >= 1) {
+        audio.pause();
+        audio.currentTime = 1;
+        audio.play();
+      } else {
+        audio.addEventListener('loadedmetadata', function () {
+          audio.pause();
+          audio.currentTime = 1;
+          audio.play();
+        }, { once: true });
+      }
+    }
+  </script>
+</body>
+</html>
