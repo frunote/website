@@ -1,85 +1,238 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-  <meta charset="UTF-8">
-  <title>clicker game</title>
+  <meta charset="UTF-8" />
+  <title>clicker Game</title>
   <style>
-    body { text-align: center; font-family: sans-serif; margin-top: 40px; }
-    button { padding: 15px 30px; font-size: 20px; margin: 10px; cursor: pointer; }
-    #golden { display: none; background: gold; color: black; font-weight: bold; }
-    #win { font-size: 30px; color: green; display: none; }
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      margin-top: 40px;
+      background: #121212;
+      color: #eee;
+      user-select: none;
+      overflow-x: hidden;
+      position: relative;
+      height: 100vh;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #4a90e2, #357abd);
+      color: white;
+      box-shadow: 0 4px 15px rgba(53, 122, 189, 0.6);
+      transition: box-shadow 0.3s ease, border 0.3s ease;
+      position: relative;
+      min-width: 180px;
+      font-weight: 600;
+    }
+    button:hover {
+      box-shadow: 0 0 12px 2px #a6c8ff;
+      border: 2px solid #a6c8ff;
+      transition: box-shadow 0.4s ease, border 0.4s ease;
+    }
+    #golden, #luckBoost {
+      position: fixed;
+      padding: 15px 25px;
+      font-size: 22px;
+      font-weight: 700;
+      border-radius: 50%;
+      box-shadow: 0 0 10px 3px;
+      cursor: pointer;
+      user-select: none;
+      display: none;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+      color: black;
+      text-align: center;
+      line-height: 1;
+    }
+    #golden {
+      background: gold;
+      box-shadow: 0 0 15px 5px #ffec7b;
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      font-weight: 900;
+    }
+    #luckBoost {
+      background: #3cc13c;
+      box-shadow: 0 0 15px 5px #84f284;
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      font-weight: 900;
+      color: white;
+    }
+    #win {
+      font-size: 32px;
+      color: #4caf50;
+      display: none;
+      margin-top: 30px;
+      font-weight: 700;
+    }
+    h1, h2 {
+      user-select: none;
+    }
+    #shop {
+      display: inline-block;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
   <h1>Money $<span id="money">0</span></h1>
-  <button onclick="clickMain()">Click Me</button>
+  <button onclick="clickMain()">click me</button>
 
   <h2>Shop</h2>
-  <button onclick="buyUpgrade()">Upgrade $<span id='upgradeValue'>1</span> click 50</button>
-  <button onclick="buyPotion()">Potion x2 boost 10s 100</button>
+  <div id="shop">
+    <button id="upgrade1" onclick="buyUpgrade(1)">Upgrade 1 $<span id='cost1'>30</span> +1 click</button><br/>
+    <button id="upgrade2" onclick="buyUpgrade(2)">Upgrade 2 $<span id='cost2'>80</span> +5 click</button><br/>
+    <button id="upgrade3" onclick="buyUpgrade(3)">Upgrade 3 $<span id='cost3'>200</span> +15 click</button><br/>
+    <button id="upgrade4" onclick="buyUpgrade(4)">Upgrade 4 $<span id='cost4'>500</span> +40 click</button><br/>
+    <button id="upgrade5" onclick="buyUpgrade(5)">Upgrade 5 $<span id='cost5'>1200</span> +100 click</button><br/>
+    <button id="potion" onclick="buyPotion()">Potion x2 boost 10s 100</button><br/>
+  </div>
 
-  <br><br>
-  <button id="golden" onclick="goldenClick()">golden Click 500</button>
+  <button id="golden" onclick="goldenClick()">Golden</button>
+  <button id="luckBoost" onclick="luckClick()">Luck</button>
 
   <h1 id="win">your did it</h1>
 
-  <script>
-    let money = 0
-    let perClick = 1
-    let upgradeCost = 50
-    let potionCost = 100
-    let boost = 1
-    let boosting = false
+<script>
+  let money = 0
+  let perClick = 1
+  let boost = 1
+  let boosting = false
+  let luckBoosting = false
 
-    function updateDisplay() {
-      document.getElementById('money').textContent = money.toLocaleString()
-      document.getElementById('upgradeValue').textContent = perClick * boost
-      if (money >= 1000000) document.getElementById('win').style.display = 'block'
+  // upgrades data: id -> {cost, increment}
+  const upgrades = {
+    1: { cost: 30, increment: 1 },
+    2: { cost: 80, increment: 5 },
+    3: { cost: 200, increment: 15 },
+    4: { cost: 500, increment: 40 },
+    5: { cost: 1200, increment: 100 }
+  }
+
+  function updateDisplay() {
+    document.getElementById('money').textContent = money.toLocaleString()
+    for (const id in upgrades) {
+      document.getElementById('cost'+id).textContent = upgrades[id].cost
     }
+    document.getElementById('win').style.display = money >= 1000000 ? 'block' : 'none'
+  }
 
-    function clickMain() {
-      money += perClick * boost
-      updateDisplay()
-    }
-
-    function buyUpgrade() {
-      if (money >= upgradeCost) {
-        money -= upgradeCost
-        perClick++
-        upgradeCost = Math.floor(upgradeCost * 1.5)
-        updateDisplay()
-      }
-    }
-
-    function buyPotion() {
-      if (money >= potionCost && !boosting) {
-        money -= potionCost
-        boost = 2
-        boosting = true
-        updateDisplay()
-        setTimeout(() => {
-          boost = 1
-          boosting = false
-          updateDisplay()
-        }, 10000)
-      }
-    }
-
-    function goldenClick() {
-      money += 500
-      document.getElementById('golden').style.display = 'none'
-      updateDisplay()
-    }
-
-    setInterval(() => {
-      if (Math.random() < 0.3) {
-        const btn = document.getElementById('golden')
-        btn.style.display = 'inline-block'
-        setTimeout(() => btn.style.display = 'none', 5000)
-      }
-    }, 5000)
-
+  function clickMain() {
+    money += perClick * boost
     updateDisplay()
-  </script>
+  }
+
+  function buyUpgrade(id) {
+    if (money >= upgrades[id].cost) {
+      money -= upgrades[id].cost
+      perClick += upgrades[id].increment
+      upgrades[id].cost = Math.floor(upgrades[id].cost * 1.3)
+      updateDisplay()
+    }
+  }
+
+  function buyPotion() {
+    const potionCost = 100
+    if (money >= potionCost && !boosting) {
+      money -= potionCost
+      boost = 2
+      boosting = true
+      updateDisplay()
+      setTimeout(() => {
+        boost = luckBoosting ? 10 : 1
+        boosting = false
+        updateDisplay()
+      }, 10000)
+    }
+  }
+
+  function goldenClick() {
+    money += 500
+    hideButton('golden')
+    updateDisplay()
+  }
+
+  function luckClick() {
+    if (luckBoosting) return
+    luckBoosting = true
+    boost = 10 // 1000% boost
+    hideButton('luckBoost')
+    updateDisplay()
+    setTimeout(() => {
+      boost = boosting ? 2 : 1
+      luckBoosting = false
+      updateDisplay()
+    }, 3000)
+  }
+
+  // helps to show/hide buttons
+  function showButton(id, x, y) {
+    const btn = document.getElementById(id)
+    btn.style.left = x + 'px'
+    btn.style.top = y + 'px'
+    btn.style.opacity = '1'
+    btn.style.display = 'block'
+  }
+  function hideButton(id) {
+    const btn = document.getElementById(id)
+    btn.style.opacity = '0'
+    setTimeout(() => {
+      btn.style.display = 'none'
+    }, 500)
+  }
+
+  // generates random position on screen avoiding UI area (top center)
+  function randomPosition(btnSize=70) {
+    const padding = 10
+    const w = window.innerWidth
+    const h = window.innerHeight
+    // avoides top center area (0,0 to w, 200px)
+    let x, y
+    do {
+      x = Math.random() * (w - btnSize - padding * 2) + padding
+      y = Math.random() * (h - btnSize - padding * 2) + padding
+    } while (y < 200)
+    return {x, y}
+  }
+
+  // show th golden button randomly 10-20s intervals
+  function spawnGolden() {
+    if (Math.random() < 0.4) {
+      const pos = randomPosition()
+      showButton('golden', pos.x, pos.y)
+      setTimeout(() => hideButton('golden'), 5000)
+    }
+    const delay = Math.random() * 10000 + 10000
+    setTimeout(spawnGolden, delay)
+  }
+
+  // Show luck boost randomly 15-30s intervals
+  function spawnLuck() {
+    if (!luckBoosting && Math.random() < 0.3) {
+      const pos = randomPosition()
+      showButton('luckBoost', pos.x, pos.y)
+      setTimeout(() => hideButton('luckBoost'), 4000)
+    }
+    const delay = Math.random() * 15000 + 15000
+    setTimeout(spawnLuck, delay)
+  }
+
+  // Init
+  updateDisplay()
+  spawnGolden()
+  spawnLuck()
+
+</script>
+
 </body>
 </html>
