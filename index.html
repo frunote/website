@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Secret Door with Key</title>
+  <meta charset="UTF-8" />
+  <title>Secret Door Puzzle</title>
   <style>
     body {
       margin: 0;
@@ -12,6 +12,10 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      user-select: none;
+      font-family: Arial, sans-serif;
+      color: white;
+      position: relative;
     }
 
     #door {
@@ -22,27 +26,29 @@
       z-index: 2;
       cursor: pointer;
     }
-
     #door.open {
       transform: rotateY(-100deg);
       opacity: 0;
     }
 
     #secretBtn {
-      font-size: 24px;
-      padding: 20px 40px;
-      border: none;
+      position: absolute;
+      font-size: 28px;
+      padding: 20px 50px;
+      border: 2px solid transparent;
       border-radius: 12px;
       background: linear-gradient(135deg, #222, #444);
       color: white;
       cursor: pointer;
-      z-index: 1;
       opacity: 0;
-      transition: opacity 1s ease;
+      transition: opacity 1s ease, border-color 0.4s ease;
+      z-index: 10;
     }
-
     #secretBtn.show {
       opacity: 1;
+    }
+    #secretBtn:hover {
+      border-color: white;
     }
 
     #carpet {
@@ -54,11 +60,9 @@
       transition: transform 0.5s ease;
       z-index: 3;
     }
-
     #carpet.shake {
       animation: shake 0.5s;
     }
-
     #carpet.lifted {
       transform: translateY(-80px);
     }
@@ -69,8 +73,16 @@
       right: 40px;
       width: 40px;
       display: none;
-      cursor: pointer;
+      cursor: grab;
       z-index: 4;
+      user-select: none;
+      -webkit-user-drag: none;
+      -moz-user-drag: none;
+      -ms-user-drag: none;
+      user-drag: none;
+    }
+    #key.dragging {
+      cursor: grabbing;
     }
 
     @keyframes shake {
@@ -80,34 +92,154 @@
       75% { transform: rotate(5deg); }
       100% { transform: rotate(0deg); }
     }
+
+    #shuffleContainer {
+      position: absolute;
+      bottom: 150px;
+      right: 20px;
+      width: 320px;
+      height: 120px;
+      display: none;
+      gap: 10px;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .shuffleImg {
+      width: 100px;
+      height: 100px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      transition: border-color 0.3s ease;
+      user-select: none;
+    }
+    .shuffleImg:hover {
+      border-color: #fff;
+    }
+
+    #cooldownMessage {
+      position: absolute;
+      bottom: 280px;
+      right: 20px;
+      color: #f44;
+      font-weight: bold;
+      font-size: 18px;
+      display: none;
+      z-index: 30;
+      background: rgba(0,0,0,0.7);
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    /* question mark and speech bubble */
+
+    #questionMark {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-size: 32px;
+      color: white;
+      opacity: 0.1;
+      cursor: pointer;
+      z-index: 50;
+      user-select: none;
+      transition: opacity 0.3s ease;
+    }
+    #questionMark:hover {
+      opacity: 0.4;
+    }
+
+    #speechBubble {
+      position: fixed;
+      top: 50px;
+      left: 10px;
+      max-width: 200px;
+      background: #222;
+      color: white;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 16px;
+      box-shadow: 0 0 10px #000;
+      display: none;
+      z-index: 51;
+      user-select: none;
+    }
+
+    #speechBubble::after {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: 20px;
+      border: 8px solid transparent;
+      border-bottom-color: #222;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+    }
   </style>
 </head>
 <body>
 
-  <img id="door" src="door.png" alt="Secret Door">
+  <img id="door" src="door.png" alt="Secret Door" />
   <button id="secretBtn" onclick="playSound()">Secret Buton.. 🤫🤫</button>
-  <img id="carpet" src="carpet.png" alt="Carpet">
-  <img id="key" src="key.png" alt="Key">
+  <img id="carpet" src="carpet.png" alt="Carpet" />
+  <img id="key" src="key.png" alt="Key" draggable="false" />
+
+  <div id="shuffleContainer"></div>
+  <div id="cooldownMessage">Wait 30 seconds before trying again.</div>
+
+  <div id="questionMark">?</div>
+  <div id="speechBubble">hi you found the easter egg 🥚</div>
+
   <audio id="lolSound" src="sound.mp3"></audio>
+  <audio id="concreteSound" src="concrete.mp3"></audio>
+  <audio id="creakSound" src="creak.mp3"></audio>
 
   <script>
     const carpet = document.getElementById('carpet');
     const key = document.getElementById('key');
     const door = document.getElementById('door');
     const btn = document.getElementById('secretBtn');
+    const shuffleContainer = document.getElementById('shuffleContainer');
+    const cooldownMessage = document.getElementById('cooldownMessage');
+    const questionMark = document.getElementById('questionMark');
+    const speechBubble = document.getElementById('speechBubble');
 
-    const concreteSound = new Audio('concrete.mp3');
-    const creakSound = new Audio('creak.mp3');
+    const lolSound = document.getElementById('lolSound');
+    const concreteSound = document.getElementById('concreteSound');
+    const creakSound = document.getElementById('creakSound');
 
     let carpetClicks = 0;
     let draggingKey = false;
+    let offsetX, offsetY;
+
+    const COOLDOWN_KEY = 'secret_button_cooldown';
+
+    function checkCooldown() {
+      const cooldownUntil = localStorage.getItem(COOLDOWN_KEY);
+      if (!cooldownUntil) return false;
+      const now = Date.now();
+      if (now < cooldownUntil) {
+        showCooldown(Math.ceil((cooldownUntil - now) / 1000));
+        return true;
+      } else {
+        cooldownMessage.style.display = 'none';
+        localStorage.removeItem(COOLDOWN_KEY);
+        return false;
+      }
+    }
+
+    function showCooldown(seconds) {
+      cooldownMessage.textContent = `Wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
+      cooldownMessage.style.display = 'block';
+    }
 
     carpet.addEventListener('click', () => {
+      if (carpetClicks >= 3) return;
       carpetClicks++;
-      if (carpetClicks === 1) {
-        carpet.classList.add('shake');
-        setTimeout(() => carpet.classList.remove('shake'), 500);
-      }
+      carpet.classList.add('shake');
+      setTimeout(() => carpet.classList.remove('shake'), 500);
+
       if (carpetClicks === 3) {
         carpet.classList.add('lifted');
         key.style.display = 'block';
@@ -115,43 +247,52 @@
       }
     });
 
-    key.addEventListener('mousedown', () => {
+    key.addEventListener('mousedown', (e) => {
       draggingKey = true;
+      key.classList.add('dragging');
+      offsetX = e.clientX - key.getBoundingClientRect().left;
+      offsetY = e.clientY - key.getBoundingClientRect().top;
+      e.preventDefault();
     });
 
     document.addEventListener('mouseup', () => {
-      draggingKey = false;
+      if (draggingKey) {
+        draggingKey = false;
+        key.classList.remove('dragging');
+      }
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (draggingKey) {
-        key.style.left = (e.pageX - 20) + 'px';
-        key.style.top = (e.pageY - 20) + 'px';
+      if (!draggingKey) return;
 
-        const keyRect = key.getBoundingClientRect();
-        const doorRect = door.getBoundingClientRect();
+      key.style.position = 'absolute';
+      key.style.left = (e.pageX - offsetX) + 'px';
+      key.style.top = (e.pageY - offsetY) + 'px';
 
-        const overlapping = (
-          keyRect.left < doorRect.right &&
-          keyRect.right > doorRect.left &&
-          keyRect.top < doorRect.bottom &&
-          keyRect.bottom > doorRect.top
-        );
+      const keyRect = key.getBoundingClientRect();
+      const doorRect = door.getBoundingClientRect();
 
-        if (overlapping) {
-          door.classList.add('open');
-          playCreakSegment();
-          key.style.display = 'none';
-          setTimeout(() => btn.classList.add('show'), 1000);
-        }
+      const overlapping = (
+        keyRect.left < doorRect.right &&
+        keyRect.right > doorRect.left &&
+        keyRect.top < doorRect.bottom &&
+        keyRect.bottom > doorRect.top
+      );
+
+      if (overlapping) {
+        door.classList.add('open');
+        playCreakSegment();
+        key.style.display = 'none';
+        draggingKey = false;
+        key.classList.remove('dragging');
+        showShuffle();
       }
     });
 
     function playSound() {
-      const audio = document.getElementById('lolSound');
-      audio.pause();
-      audio.currentTime = 1;
-      audio.play();
+      lolSound.pause();
+      lolSound.currentTime = 1;
+      lolSound.play();
     }
 
     function playConcreteSegment() {
@@ -164,7 +305,81 @@
       creakSound.currentTime = 0.5;
       creakSound.play();
     }
-  </script>
 
+    const images = [
+      'image1.png',
+      'image2.png',
+      'image3.png'
+    ];
+    const correctIndex = Math.floor(Math.random() * images.length);
+
+    function shuffleArray(arr) {
+      for (let i = arr.length -1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i +1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function showShuffle() {
+      if (checkCooldown()) return;
+
+      shuffleContainer.innerHTML = '';
+      shuffleContainer.style.display = 'flex';
+
+      const idxs = [0,1,2];
+      shuffleArray(idxs);
+
+      idxs.forEach((idx) => {
+        const img = document.createElement('img');
+        img.src = images[idx];
+        img.className = 'shuffleImg';
+        img.dataset.index = idx;
+        img.title = `Image`;
+        img.addEventListener('click', onImageClick);
+        shuffleContainer.appendChild(img);
+      });
+
+      btn.style.opacity = 0;
+    }
+
+    function onImageClick(e) {
+      if (checkCooldown()) return;
+
+      const guess = parseInt(e.target.dataset.index);
+      if (guess === correctIndex) {
+        shuffleContainer.style.display = 'none';
+        btn.style.opacity = 1;
+        cooldownMessage.style.display = 'none';
+        alert('You found the Secret Buton!');
+      } else {
+        const cooldownUntil = Date.now() + 30000;
+        localStorage.setItem(COOLDOWN_KEY, cooldownUntil);
+        shuffleContainer.style.display = 'none';
+        cooldownMessage.style.display = 'block';
+
+        let interval = setInterval(() => {
+          if (!checkCooldown()) {
+            clearInterval(interval);
+          }
+        }, 1000);
+      }
+    }
+
+    window.onload = () => {
+      if (checkCooldown()) {
+        btn.style.opacity = 0;
+      }
+    };
+
+    // question mark toggle speech bubble thing also cherish u poop
+    questionMark.addEventListener('click', () => {
+      if (speechBubble.style.display === 'block') {
+        speechBubble.style.display = 'none';
+      } else {
+        speechBubble.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>
