@@ -1,295 +1,432 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Secret Button</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: white;
-      overflow: hidden;
-      font-family: sans-serif;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Secret Button</title>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    color: white;
+    overflow: hidden;
+    font-family: sans-serif;
+    user-select: none;
+  }
 
-    #question {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      opacity: 0.1;
-      cursor: pointer;
-      z-index: 999;
-    }
+  #question {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    opacity: 0.1;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 56px;
+    z-index: 999;
+    user-select: none;
+  }
 
-    #egg {
-      position: absolute;
-      top: 40px;
-      left: 40px;
-      background: #222;
-      padding: 10px;
-      border-radius: 10px;
-      border: 2px solid white;
-      display: none;
-    }
+  #egg {
+    position: absolute;
+    top: 70px;
+    left: 20px;
+    background: #222;
+    padding: 10px 15px;
+    border-radius: 10px;
+    border: 2px solid white;
+    display: none;
+    max-width: 200px;
+    font-size: 14px;
+    line-height: 1.3;
+    z-index: 1000;
+    user-select: none;
+  }
 
-    #door {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 300px;
-      height: auto;
-      cursor: pointer;
-      transition: opacity 0.5s;
-    }
+  #egg::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent transparent white transparent;
+    filter: drop-shadow(0 0 1px black);
+  }
 
-    #carpet {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 100px;
-      cursor: pointer;
-      transition: all 0.5s;
-    }
+  #door {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 350px;
+    cursor: pointer;
+    z-index: 5;
+  }
 
-    #key {
-      position: absolute;
-      width: 50px;
-      display: none;
-      pointer-events: none;
-    }
+  #carpet {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 140px;
+    cursor: pointer;
+    z-index: 15;
+    user-select: none;
+    transition: bottom 0.5s ease;
+  }
 
-    #btn {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      padding: 20px 40px;
-      font-size: 24px;
-      background: #f00;
-      color: white;
-      border: 2px solid white;
-      border-radius: 12px;
-      opacity: 0;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
+  #key {
+    position: absolute;
+    width: 70px;
+    display: none;
+    pointer-events: auto;
+    z-index: 10;
+    cursor: grab;
+    user-select: none;
+  }
+  #key:active {
+    cursor: grabbing;
+  }
 
-    #btn:hover {
-      box-shadow: 0 0 10px white;
-    }
+  #btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    padding: 20px 40px;
+    font-size: 24px;
+    background: #f00;
+    color: white;
+    border: 2px solid white;
+    border-radius: 12px;
+    opacity: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 50;
+  }
 
-    .shuffleRow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(1.2);
-      display: flex;
-      gap: 20px;
-      display: none;
-    }
+  #btn:hover {
+    box-shadow: 0 0 10px white;
+  }
 
-    .shuffleImg {
-      width: 150px;
-      height: 150px;
-      border: 2px solid black;
-      cursor: pointer;
-      animation: glint 2s infinite;
-      opacity: 0;
-    }
+  .shuffleRow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.2);
+    display: flex;
+    gap: 20px;
+    display: none;
+    z-index: 40;
+  }
 
-    @keyframes glint {
-      0% { box-shadow: 0 0 0 white; }
-      50% { box-shadow: 0 0 10px white; }
-      100% { box-shadow: 0 0 0 white; }
-    }
+  .shuffleImg {
+    width: 150px;
+    height: 150px;
+    border: 2px solid black;
+    cursor: pointer;
+    opacity: 0;
+    position: relative;
+  }
 
-    #noteText {
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 20px;
-      text-align: center;
-      display: none;
-      opacity: 0;
-    }
+  /* Glint animation: white glowing stroke cycling */
+  .shuffleImg::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    border: 2px solid transparent;
+    border-radius: 4px;
+    pointer-events: none;
+    box-sizing: border-box;
+    animation: glint 2s infinite;
+  }
 
-    #youFound {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      opacity: 0;
-      transition: opacity 1s;
-    }
+  @keyframes glint {
+    0%, 100% { border-color: transparent; }
+    50% { border-color: white; }
+  }
 
-    #jeffImage {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
-      z-index: 1000;
-    }
+  #noteText {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    text-align: center;
+    display: none;
+    opacity: 0;
+    z-index: 45;
+  }
 
-    #cooldownTimer {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      font-size: 18px;
-      background: rgba(255, 0, 0, 0.3);
-      padding: 5px 10px;
-      border-radius: 6px;
-      display: none;
-    }
-  </style>
+  #youFound {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -120%) scale(1);
+    font-size: 24px;
+    opacity: 0;
+    transition: opacity 1s;
+    z-index: 55;
+    user-select: none;
+  }
+
+  #jeffImage {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 1000;
+    user-select: none;
+  }
+
+  #cooldownTimer {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 18px;
+    background: rgba(255, 0, 0, 0.3);
+    padding: 5px 10px;
+    border-radius: 6px;
+    display: none;
+    z-index: 60;
+    user-select: none;
+  }
+</style>
 </head>
 <body>
   <div id="question">?</div>
   <div id="egg">hi you found the easter egg 🥚</div>
-  <img id="door" src="door.png" />
-  <img id="carpet" src="carpet.png" />
-  <img id="key" src="key.png" />
+  <img id="door" src="door.png" alt="door" />
+  <img id="carpet" src="carpet.png" alt="carpet" />
+  <img id="key" src="key.png" alt="key" />
   <div id="noteText">The button is behind one of them...<br>Choose wisely, or wait for eternity... (not really)</div>
   <div class="shuffleRow" id="shuffleImagesRow">
-    <img class="shuffleImg" src="image1.png" data-index="0" />
-    <img class="shuffleImg" src="image2.png" data-index="1" />
-    <img class="shuffleImg" src="image3.png" data-index="2" />
+    <img class="shuffleImg" src="image1.png" data-index="0" alt="shuffle1" />
+    <img class="shuffleImg" src="image2.png" data-index="1" alt="shuffle2" />
+    <img class="shuffleImg" src="image3.png" data-index="2" alt="shuffle3" />
   </div>
   <button id="btn">Secret Buton.. 🤫🤫</button>
   <div id="youFound">you found me!</div>
   <div id="cooldownTimer"></div>
+
   <audio id="sound" src="sound.mp3"></audio>
   <audio id="concrete" src="concrete.mp3"></audio>
   <audio id="creak" src="creak.mp3"></audio>
   <audio id="knock" src="knock.mp3"></audio>
   <audio id="jeff" src="jeff.mp3"></audio>
   <audio id="buttonSound" src="button.mp3"></audio>
-  <img id="jeffImage" src="jefff.png" />
 
-  <script>
-    const egg = document.getElementById('egg');
-    document.getElementById('question').addEventListener('click', () => {
-      egg.style.display = 'block';
-    });
+  <img id="jeffImage" src="jefff.png" alt="jeff" />
 
-    const btn = document.getElementById('btn');
-    const sound = document.getElementById('sound');
-    const concrete = document.getElementById('concrete');
-    const creak = document.getElementById('creak');
-    const knock = document.getElementById('knock');
-    const jeff = document.getElementById('jeff');
-    const key = document.getElementById('key');
-    const carpet = document.getElementById('carpet');
-    const door = document.getElementById('door');
-    const shuffleImagesRow = document.getElementById('shuffleImagesRow');
-    const shuffleImgs = document.querySelectorAll('.shuffleImg');
-    const noteText = document.getElementById('noteText');
-    const jeffImage = document.getElementById('jeffImage');
-    const youFound = document.getElementById('youFound');
-    const buttonSound = document.getElementById('buttonSound');
-    const cooldownTimer = document.getElementById('cooldownTimer');
-    let correctIndex = Math.floor(Math.random() * 3);
-    let clicks = 0;
-    let holding = false;
-    let cooldownEnd = 0;
-    let cooldownInterval = null;
+<script>
+  const egg = document.getElementById('egg');
+  const question = document.getElementById('question');
+  const door = document.getElementById('door');
+  const carpet = document.getElementById('carpet');
+  const key = document.getElementById('key');
+  const btn = document.getElementById('btn');
+  const youFound = document.getElementById('youFound');
+  const noteText = document.getElementById('noteText');
+  const shuffleImagesRow = document.getElementById('shuffleImagesRow');
+  const shuffleImgs = document.querySelectorAll('.shuffleImg');
+  const cooldownTimer = document.getElementById('cooldownTimer');
+  const jeffImage = document.getElementById('jeffImage');
 
-    carpet.addEventListener('click', () => {
-      clicks++;
-      carpet.style.transform = 'rotate(5deg)';
-      setTimeout(() => carpet.style.transform = 'rotate(-5deg)', 100);
-      setTimeout(() => carpet.style.transform = 'rotate(0deg)', 200);
-      if (clicks >= 3) {
-        concrete.currentTime = 3;
-        concrete.play();
-        carpet.style.bottom = '70px';
-        setTimeout(() => carpet.style.bottom = '20px', 2000);
-        key.style.left = (carpet.offsetLeft + 25) + 'px';
-        key.style.top = (carpet.offsetTop - 50) + 'px';
-        key.style.display = 'block';
-      }
-    });
+  const sound = document.getElementById('sound');
+  const concrete = document.getElementById('concrete');
+  const creak = document.getElementById('creak');
+  const knock = document.getElementById('knock');
+  const jeff = document.getElementById('jeff');
+  const buttonSound = document.getElementById('buttonSound');
 
-    key.addEventListener('mousedown', () => holding = true);
-    window.addEventListener('mouseup', () => holding = false);
-    window.addEventListener('mousemove', (e) => {
-      if (holding) {
-        key.style.left = e.pageX + 'px';
-        key.style.top = e.pageY + 'px';
-      }
-    });
+  let correctIndex = Math.floor(Math.random() * 3);
+  let carpetClicks = 0;
+  let dragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  let cooldownEnd = 0;
+  let cooldownInterval = null;
+  let carpetSliding = false;
 
-    door.addEventListener('click', () => {
-      knock.currentTime = 0;
-      knock.play();
-      if (Math.random() < 1/30) {
-        jeffImage.style.display = 'block';
-        jeff.currentTime = 5;
-        jeff.play();
-        setTimeout(() => {
-          jeff.pause();
-          jeff.currentTime = 0;
-          jeffImage.style.display = 'none';
-        }, 2000);
-      }
-    });
+  // Show egg on question mark click
+  question.addEventListener('click', () => {
+    egg.style.display = 'block';
+  });
 
-    key.addEventListener('mouseup', () => {
-      if (holding) {
-        creak.currentTime = 0.5;
-        creak.play();
-        door.style.opacity = '0';
-        setTimeout(() => {
-          shuffleImagesRow.style.display = 'flex';
-          noteText.style.display = 'block';
-          setTimeout(() => noteText.style.opacity = '1', 50);
-          shuffleImgs.forEach((img, i) => {
-            setTimeout(() => img.style.opacity = '1', i * 500);
-          });
-        }, 500);
-      }
-    });
+  // Carpet clicks to reveal key, no repositioning on clicks except once after 3 clicks
+  carpet.addEventListener('click', () => {
+    carpetClicks++;
+    if (carpetClicks === 3) {
+      key.style.display = 'block';
 
-    function updateCooldownDisplay() {
-      const timeLeft = Math.ceil((cooldownEnd - Date.now()) / 1000);
-      if (timeLeft > 0) {
-        cooldownTimer.style.display = 'block';
-        cooldownTimer.textContent = `Try again in ${timeLeft}s`;
-      } else {
-        cooldownTimer.style.display = 'none';
-        clearInterval(cooldownInterval);
-      }
+      const carpetRect = carpet.getBoundingClientRect();
+      key.style.left = (carpetRect.left + window.scrollX + carpetRect.width / 2 - key.offsetWidth / 2) + 'px';
+      key.style.top = (carpetRect.top + window.scrollY + carpetRect.height - 15) + 'px';
     }
+  });
 
+  // Drag key only on mouse drag
+  key.addEventListener('mousedown', e => {
+    dragging = true;
+    const rect = key.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    key.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (dragging) {
+      dragging = false;
+      key.style.cursor = 'grab';
+    }
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    let newLeft = e.clientX - dragOffsetX;
+    let newTop = e.clientY - dragOffsetY;
+
+    // Clamp inside viewport
+    const maxLeft = window.innerWidth - key.offsetWidth;
+    const maxTop = window.innerHeight - key.offsetHeight;
+    newLeft = Math.min(Math.max(0, newLeft), maxLeft);
+    newTop = Math.min(Math.max(0, newTop), maxTop);
+
+    key.style.left = newLeft + 'px';
+    key.style.top = newTop + 'px';
+  });
+
+  // Carpet slide on door click
+  door.addEventListener('click', () => {
+    if (carpetSliding) return; // Prevent spam sliding
+    carpetSliding = true;
+
+    // Slide carpet up (hide)
+    carpet.style.bottom = '100%';
+
+    concrete.play();
+
+    // Play knock sound after 1s delay
+    setTimeout(() => {
+      knock.play();
+    }, 1000);
+
+    // Play Jeff sound from 5s to 7s after 3s delay
+    setTimeout(() => {
+      jeff.currentTime = 5;
+      jeff.play();
+      jeffImage.style.display = 'block';
+    }, 3000);
+
+    // Stop Jeff sound and hide image at 7s (2s after start)
+    setTimeout(() => {
+      jeff.pause();
+      jeffImage.style.display = 'none';
+
+      // Slide carpet down back after Jeff sound ends
+      carpet.style.bottom = '20px';
+
+      creak.play();
+      carpetSliding = false;
+    }, 5000);
+
+    // Show button after carpet slides up
+    setTimeout(() => {
+      btn.style.opacity = '1';
+      btn.style.transform = 'translate(-50%, -50%) scale(1)';
+      btn.style.pointerEvents = 'auto';
+    }, 700);
+  });
+
+  // Button click logic
+  btn.addEventListener('click', () => {
+    const now = Date.now();
+    if (now < cooldownEnd) {
+      // Still cooling down
+      return;
+    }
+    buttonSound.play();
+
+    // Show shuffle images and note
+    noteText.style.display = 'block';
+    noteText.style.opacity = '1';
+    shuffleImagesRow.style.display = 'flex';
+
+    // Animate shuffle images opacity
     shuffleImgs.forEach(img => {
-      img.addEventListener('click', (e) => {
-        if (Date.now() < cooldownEnd) return;
-        const selected = parseInt(e.target.dataset.index);
-        if (selected === correctIndex) {
-          shuffleImgs.forEach(i => i.style.opacity = '0');
-          btn.style.transform = 'translate(-50%, -50%) scale(1)';
-          btn.style.opacity = '1';
-          youFound.style.opacity = '1';
-          setTimeout(() => youFound.style.opacity = '0', 1000);
-        } else {
-          cooldownEnd = Date.now() + 30000;
-          updateCooldownDisplay();
-          cooldownInterval = setInterval(updateCooldownDisplay, 1000);
-        }
-      });
+      img.style.opacity = '1';
     });
 
-    btn.addEventListener('click', () => {
-      sound.currentTime = 1;
-      sound.play();
-      buttonSound.currentTime = 0;
-      buttonSound.play();
+    // Cooldown 15 seconds
+    cooldownEnd = now + 15000;
+    cooldownTimer.style.display = 'block';
+    updateCooldown();
+
+    if (cooldownInterval) clearInterval(cooldownInterval);
+    cooldownInterval = setInterval(updateCooldown, 100);
+  });
+
+  // Update cooldown timer text and hide UI when cooldown ends
+  function updateCooldown() {
+    const now = Date.now();
+    if (now >= cooldownEnd) {
+      cooldownTimer.style.display = 'none';
+      noteText.style.opacity = '0';
+      shuffleImagesRow.style.display = 'none';
+      cooldownTimer.textContent = '';
+      clearInterval(cooldownInterval);
+      cooldownInterval = null;
+      return;
+    }
+    const secLeft = Math.ceil((cooldownEnd - now) / 1000);
+    cooldownTimer.textContent = `Cooldown: ${secLeft}s`;
+  }
+
+  // Shuffle image click logic
+  shuffleImgs.forEach(img => {
+    img.addEventListener('click', () => {
+      const index = parseInt(img.dataset.index, 10);
+      if (Date.now() < cooldownEnd) return; // No interaction during cooldown
+
+      if (index === correctIndex) {
+        // Correct choice
+        youFound.style.opacity = '1';
+        setTimeout(() => {
+          youFound.style.opacity = '0';
+        }, 3000);
+
+        // Hide button and shuffle images
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+        shuffleImagesRow.style.display = 'none';
+        noteText.style.display = 'none';
+
+        // Reset cooldown immediately
+        cooldownTimer.style.display = 'none';
+        cooldownTimer.textContent = '';
+        if (cooldownInterval) {
+          clearInterval(cooldownInterval);
+          cooldownInterval = null;
+        }
+      } else {
+        // Wrong choice: shake image
+        img.animate([
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(-10px)' },
+          { transform: 'translateX(10px)' },
+          { transform: 'translateX(0)' }
+        ], {
+          duration: 400,
+          iterations: 1
+        });
+      }
     });
-  </script>
+  });
+</script>
 </body>
 </html>
