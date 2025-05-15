@@ -183,7 +183,6 @@
       position: relative;
       box-shadow: 0 0 8px #0005;
       background: #222;
-      animation: glint 2s infinite;
     }
     .shuffleImg:hover {
       border-color: #fff;
@@ -251,17 +250,6 @@
       filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
     }
 
-    @keyframes glint {
-      0% {
-        box-shadow: 0 0 0px white;
-      }
-      50% {
-        box-shadow: 0 0 10px white;
-      }
-      100% {
-        box-shadow: 0 0 0px white;
-      }
-    }
   </style>
 </head>
 <body>
@@ -334,107 +322,126 @@
         if (seconds <= 0) {
           cooldownMessage.style.display = 'none';
           clearInterval(cooldownInterval);
-          btn.disabled = false;
           localStorage.removeItem(COOLDOWN_KEY);
-          return;
+          btn.disabled = false;
+        } else {
+          cooldownMessage.textContent = `wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
         }
-        cooldownMessage.textContent = `wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
       }, 1000);
     }
 
+    // carpet click behavior with shake anim
     carpet.addEventListener('click', () => {
-      carpetClicks++;
-      carpet.classList.add('shake');
-      setTimeout(() => carpet.classList.remove('shake'), 500);
-      concreteSound.currentTime = 0;
-      concreteSound.play();
-
-      if (carpetClicks === 3) {
-        carpet.classList.add('lifted');
-        setTimeout(() => {
-          key.style.display = 'block';
-          carpetClicks = 0;
-        }, 600);
+      if (carpetClicks < 3) {
+        carpet.classList.add('shake');
+        setTimeout(() => carpet.classList.remove('shake'), 500);
+        carpetClicks++;
+        if (carpetClicks === 3) {
+          carpet.classList.add('lifted');
+          concreteSound.currentTime = 3;
+          concreteSound.play();
+          setTimeout(() => {
+            key.style.display = 'block';
+          }, 600);
+        }
       }
     });
 
-    key.addEventListener('mousedown', (e) => {
+    // key drag logic - press & hold to drag
+    key.addEventListener('mousedown', e => {
       draggingKey = true;
+      key.classList.add('dragging');
       offsetX = e.clientX - key.getBoundingClientRect().left;
       offsetY = e.clientY - key.getBoundingClientRect().top;
-      key.classList.add('dragging');
+      e.preventDefault();
     });
     window.addEventListener('mouseup', () => {
       if (draggingKey) {
         draggingKey = false;
         key.classList.remove('dragging');
-        // Check if key is over door
-        const doorRect = door.getBoundingClientRect();
-        const keyRect = key.getBoundingClientRect();
-
-        if (
-          keyRect.left + keyRect.width / 2 > doorRect.left &&
-          keyRect.left + keyRect.width / 2 < doorRect.right &&
-          keyRect.top + keyRect.height / 2 > doorRect.top &&
-          keyRect.top + keyRect.height / 2 < doorRect.bottom
-        ) {
-          openDoorSequence();
-        }
+        checkUnlock();
       }
     });
-    window.addEventListener('mousemove', (e) => {
-      if (!draggingKey) return;
-      const x = e.clientX - offsetX;
-      const y = e.clientY - offsetY;
-      key.style.left = x + 'px';
-      key.style.top = y + 'px';
+    window.addEventListener('mousemove', e => {
+      if (draggingKey) {
+        key.style.left = `${e.clientX - offsetX}px`;
+        key.style.top = `${e.clientY - offsetY}px`;
+        key.style.position = 'fixed';
+        key.style.zIndex = 100;
+      }
     });
 
-    function openDoorSequence() {
-      carpet.style.display = 'none';
-      key.style.display = 'none';
-      door.classList.add('open');
-      creakSound.currentTime = 0;
+    // unlock door if key overlaps door
+    function checkUnlock() {
+      const keyRect = key.getBoundingClientRect();
+      const doorRect = door.getBoundingClientRect();
+      if (
+        keyRect.left < doorRect.right &&
+        keyRect.right > doorRect.left &&
+        keyRect.top < doorRect.bottom &&
+        keyRect.bottom > doorRect.top
+      ) {
+        unlockDoor();
+      } else {
+        // reset key pos
+        key.style.display = 'none';
+        carpetClicks = 0;
+        carpet.classList.remove('lifted');
+        key.style.position = 'absolute';
+        key.style.bottom = '40px';
+        key.style.right = '40px';
+        key.style.left = '';
+        key.style.top = '';
+      }
+    }
+
+    function unlockDoor() {
+      creakSound.currentTime = 0.5;
       creakSound.play();
+      door.classList.add('open');
+      key.style.display = 'none';
+      carpet.style.display = 'none';
+
       setTimeout(() => {
         door.style.display = 'none';
-        foundText.style.opacity = '1';
-        setTimeout(() => {
-          foundText.style.opacity = '0';
-          showShufflePuzzle();
-        }, 2000);
+        startShuffle();
       }, 1500);
     }
 
-    // Shuffle puzzle logic
-    let correctIndex = 2; // index behind which button is hidden (0-based)
-    const images = [
-      { src: 'img1.png', alt: 'Image 1' },
-      { src: 'img2.png', alt: 'Image 2' },
-      { src: 'img3.png', alt: 'Image 3' },
-      { src: 'img4.png', alt: 'Image 4' },
-    ];
+    // shuffle images and button logic
+    const images = ['image1.png', 'image2.png', 'image3.png'];
+    let correctIndex;
 
-    function showShufflePuzzle() {
+    function startShuffle() {
       shuffleContainer.style.display = 'flex';
-      shuffleText.style.opacity = '1';
+      shuffleText.style.opacity = '0';
 
       shuffleImagesRow.innerHTML = '';
-      images.forEach((img, i) => {
-        const imageElem = document.createElement('img');
-        imageElem.src = img.src;
-        imageElem.alt = img.alt;
-        imageElem.classList.add('shuffleImg');
-        imageElem.dataset.index = i;
-        shuffleImagesRow.appendChild(imageElem);
+      correctIndex = Math.floor(Math.random() * images.length);
+
+      images.forEach((src, i) => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = 'shuffleImg';
+        img.dataset.index = i;
+        img.style.opacity = '0';
+        img.style.borderColor = 'black';
+        img.addEventListener('click', onShuffleClick);
+        shuffleImagesRow.appendChild(img);
+
         setTimeout(() => {
-          imageElem.style.opacity = '1';
-        }, 50);
+          img.style.opacity = '1';
+        }, i * 600);
       });
 
-      shuffleImagesRow.querySelectorAll('.shuffleImg').forEach(img => {
-        img.addEventListener('click', onShuffleClick);
-      });
+      setTimeout(() => {
+        shuffleText.style.opacity = '1';
+      }, images.length * 600 + 300);
+
+      btn.style.opacity = '0';
+      btn.style.pointerEvents = 'none';
+      btn.style.transform = 'translateX(-50%) scale(0.1)';
+      foundText.style.opacity = '0';
     }
 
     function onShuffleClick(e) {
@@ -442,38 +449,48 @@
 
       const selectedIndex = parseInt(e.target.dataset.index);
       if (selectedIndex === correctIndex) {
-        // Fade out all images
-        shuffleImagesRow.querySelectorAll('.shuffleImg').forEach(img => {
-          img.style.transition = 'opacity 1s ease';
-          img.style.opacity = '0';
-        });
+        // correct guess - reveal button
+        btn.textContent = 'secret buton.. 🤫🤫';
+        btn.disabled = true;
+        btn.style.pointerEvents = 'auto';
+
+        // fade in button with scale
+        btn.style.opacity = '1';
+        btn.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        btn.style.transform = 'translateX(-50%) scale(1)';
+
+        foundText.style.opacity = '1';
+
+        // position found text above button
+        foundText.style.left = btn.style.left;
+        foundText.style.top = `calc(${btn.style.top} - 50px)`;
+
+        // disable image clicks and hide shuffle container after delay
+        shuffleImagesRow.querySelectorAll('img').forEach(img => img.removeEventListener('click', onShuffleClick));
 
         setTimeout(() => {
           shuffleContainer.style.display = 'none';
-          btn.classList.add('show');
-        }, 1100);
+        }, 2000);
+
+        localStorage.removeItem(COOLDOWN_KEY);
+        cooldownMessage.style.display = 'none';
+
       } else {
+        // wrong guess - start cooldown
         localStorage.setItem(COOLDOWN_KEY, Date.now() + 30000);
         showCooldown(30);
-        btn.disabled = true;
       }
     }
 
-    btn.addEventListener('click', () => {
-      alert('You pressed the secret button!');
+    // queston mark toggle speech bubble
+    questionMark.addEventListener('click', () => {
+      speechBubble.style.display = speechBubble.style.display === 'block' ? 'none' : 'block';
     });
 
-    // Question mark and speech bubble
-    questionMark.addEventListener('mouseenter', () => {
-      speechBubble.style.display = 'block';
-    });
-    questionMark.addEventListener('mouseleave', () => {
-      speechBubble.style.display = 'none';
-    });
-
-    // Initialize
-    checkCooldown();
-
+    // init on load
+    window.onload = () => {
+      checkCooldown();
+    };
   </script>
 
 </body>
