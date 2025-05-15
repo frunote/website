@@ -28,7 +28,7 @@
       cursor: pointer;
     }
     #door.open {
-      animation: zoomindoor 1.5s forwards ease-in;
+      animation: zoomindoor 1.5s forwards ease-in; /* zoom in door anim */
     }
 
     @keyframes zoomindoor {
@@ -45,6 +45,22 @@
         opacity: 0;
       }
     }
+@keyframes glint {
+  0% {
+    box-shadow: 0 0 0px white;
+  }
+  50% {
+    box-shadow: 0 0 10px white;
+  }
+  100% {
+    box-shadow: 0 0 0px white;
+  }
+}
+
+.shuffleImg {
+  border: 2px solid black;
+  animation: glint 2s infinite;
+}
 
     #secretBtn {
       position: absolute;
@@ -62,6 +78,8 @@
       left: 50%;
       top: 60%;
       transform: translateX(-50%) scale(1);
+      user-select: none;
+      white-space: nowrap;
       pointer-events: none;
     }
     #secretBtn.show {
@@ -88,6 +106,7 @@
       z-index: 11;
     }
 
+    /* you found me! fade */
     @keyframes fadeinout {
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
@@ -145,6 +164,7 @@
       display: none;
       gap: 15px;
       z-index: 20;
+      display: flex;
       flex-direction: column;
       align-items: center;
     }
@@ -171,54 +191,19 @@
       width: 120px;
       height: 120px;
       cursor: pointer;
-      border: 2px solid black;
+      border: 2px solid black; /* black stroke for all images */
       border-radius: 12px;
-      transition: border-color 0.3s ease, opacity 1s ease, transform 0.4s ease, box-shadow 1.5s ease;
+      transition: border-color 0.3s ease, opacity 1s ease, transform 0.4s ease;
       user-select: none;
       opacity: 0;
       position: relative;
       box-shadow: 0 0 8px #0005;
       background: #222;
-      overflow: visible;
     }
     .shuffleImg:hover {
       border-color: #fff;
       transform: scale(1.1);
       z-index: 30;
-    }
-
-    /* white gleaming stroke animation */
-    .shuffleImg::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      width: calc(100% + 4px);
-      height: calc(100% + 4px);
-      border-radius: 14px;
-      pointer-events: none;
-      border: 2px solid transparent;
-      box-sizing: border-box;
-      animation: gleam 3s linear infinite;
-    }
-
-    @keyframes gleam {
-      0% {
-        border-color: transparent;
-        box-shadow: none;
-      }
-      40% {
-        border-color: white;
-        box-shadow: 0 0 10px white;
-      }
-      60% {
-        border-color: white;
-        box-shadow: 0 0 10px white;
-      }
-      100% {
-        border-color: transparent;
-        box-shadow: none;
-      }
     }
 
     #cooldownMessage {
@@ -235,8 +220,9 @@
       padding: 8px 12px;
       border-radius: 6px;
       user-select: none;
-      text-transform: lowercase;
     }
+
+    /* queston mark and speech bubble */
 
     #questionMark {
       position: fixed;
@@ -257,7 +243,7 @@
     #speechBubble {
       position: fixed;
       top: 50px;
-      left: 0px;
+      left: 0px; /* moved closer to question mark */
       max-width: 200px;
       background: #222;
       color: white;
@@ -279,6 +265,7 @@
       border-bottom-color: #222;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
     }
+
   </style>
 </head>
 <body>
@@ -293,14 +280,13 @@
     <div id="shuffleText">The button is behind one of them... Choose wisely, or wait for eternity... (not really)</div>
     <div class="shuffleImagesRow"></div>
   </div>
-  <div id="cooldownMessage">wait 30 seconds before trying again.</div>
+  <div id="cooldownMessage">Wait 30 seconds before trying again.</div>
 
   <div id="questionMark">?</div>
   <div id="speechBubble">hi you found the easter egg 🥚</div>
 
   <audio id="concreteSound" src="concrete.mp3"></audio>
   <audio id="creakSound" src="creak.mp3"></audio>
-  <audio id="buttonSound" src="button.mp3"></audio>
 
   <script>
     const carpet = document.getElementById('carpet');
@@ -316,7 +302,6 @@
     const speechBubble = document.getElementById('speechBubble');
     const concreteSound = document.getElementById('concreteSound');
     const creakSound = document.getElementById('creakSound');
-    const buttonSound = document.getElementById('buttonSound');
 
     let carpetClicks = 0;
     let draggingKey = false;
@@ -325,12 +310,13 @@
 
     const COOLDOWN_KEY = 'secretButtonCooldown';
 
+    // cooldown check
     function checkCooldown() {
       const cooldownUntil = localStorage.getItem(COOLDOWN_KEY);
       if (!cooldownUntil) return false;
-      const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      const remaining = cooldownUntil - Date.now();
       if (remaining > 0) {
-        showCooldown(remaining);
+        showCooldown(Math.ceil(remaining / 1000));
         btn.disabled = true;
         return true;
       } else {
@@ -342,6 +328,7 @@
     }
 
     let cooldownInterval;
+    // show cooldown timer on top
     function showCooldown(seconds) {
       cooldownMessage.style.display = 'block';
       cooldownMessage.textContent = `wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
@@ -359,142 +346,188 @@
       }, 1000);
     }
 
-    function startCooldown() {
-      const cooldownDuration = 30 * 1000;
-      localStorage.setItem(COOLDOWN_KEY, Date.now() + cooldownDuration);
-      checkCooldown();
-    }
-
+    // carpet click behavior with shake anim
     carpet.addEventListener('click', () => {
-      if (carpet.classList.contains('lifted')) return;
-      concreteSound.currentTime = 0;
-      concreteSound.play();
-      carpetClicks++;
-      carpet.classList.add('shake');
-      setTimeout(() => carpet.classList.remove('shake'), 500);
-
-      if (carpetClicks === 3) {
-        carpet.classList.add('lifted');
-        key.style.display = 'block';
-      }
-    });
-
-    key.addEventListener('mousedown', (e) => {
-      draggingKey = true;
-      offsetX = e.clientX - key.getBoundingClientRect().left;
-      offsetY = e.clientY - key.getBoundingClientRect().top;
-      key.classList.add('dragging');
-    });
-
-    window.addEventListener('mouseup', () => {
-      if (draggingKey) {
-        draggingKey = false;
-        key.classList.remove('dragging');
-
-        const doorRect = door.getBoundingClientRect();
-        const keyRect = key.getBoundingClientRect();
-        if (
-          keyRect.left + keyRect.width / 2 > doorRect.left &&
-          keyRect.left + keyRect.width / 2 < doorRect.right &&
-          keyRect.top + keyRect.height / 2 > doorRect.top &&
-          keyRect.top + keyRect.height / 2 < doorRect.bottom
-        ) {
-          creakSound.currentTime = 0;
-          creakSound.play();
-          door.classList.add('open');
-          key.style.display = 'none';
+      if (carpetClicks < 3) {
+        carpet.classList.add('shake');
+        setTimeout(() => carpet.classList.remove('shake'), 500);
+        carpetClicks++;
+        if (carpetClicks === 3) {
+          carpet.classList.add('lifted');
+          concreteSound.currentTime = 3;
+          concreteSound.play();
           setTimeout(() => {
-            btn.classList.add('show');
-          }, 1000);
+            key.style.display = 'block';
+          }, 600);
         }
       }
     });
 
-    window.addEventListener('mousemove', (e) => {
-      if (!draggingKey) return;
-      let x = e.clientX - offsetX;
-      let y = e.clientY - offsetY;
-      const containerRect = document.body.getBoundingClientRect();
-
-      // clamp inside viewport
-      x = Math.min(containerRect.width - key.width, Math.max(0, x));
-      y = Math.min(containerRect.height - key.height, Math.max(0, y));
-
-      key.style.left = x + 'px';
-      key.style.top = y + 'px';
+    // key drag logic - press & hold to drag
+    key.addEventListener('mousedown', e => {
+      draggingKey = true;
+      key.classList.add('dragging');
+      offsetX = e.clientX - key.getBoundingClientRect().left;
+      offsetY = e.clientY - key.getBoundingClientRect().top;
+      e.preventDefault();
+    });
+    window.addEventListener('mouseup', () => {
+      if (draggingKey) {
+        draggingKey = false;
+        key.classList.remove('dragging');
+        checkUnlock();
+      }
+    });
+    window.addEventListener('mousemove', e => {
+      if (draggingKey) {
+        key.style.left = `${e.clientX - offsetX}px`;
+        key.style.top = `${e.clientY - offsetY}px`;
+        key.style.position = 'fixed';
+        key.style.zIndex = 100;
+      }
     });
 
-    btn.addEventListener('click', () => {
-      if (checkCooldown()) return;
+    // unlock door if key overlaps door
+    function checkUnlock() {
+      const keyRect = key.getBoundingClientRect();
+      const doorRect = door.getBoundingClientRect();
+      if (
+        keyRect.left < doorRect.right &&
+        keyRect.right > doorRect.left &&
+        keyRect.top < doorRect.bottom &&
+        keyRect.bottom > doorRect.top
+      ) {
+        unlockDoor();
+      } else {
+        // reset key pos
+        key.style.display = 'none';
+        carpetClicks = 0;
+        carpet.classList.remove('lifted');
+        key.style.position = 'absolute';
+        key.style.bottom = '40px';
+        key.style.right = '40px';
+        key.style.left = '';
+        key.style.top = '';
+      }
+    }
 
-      // Play button sound
-      buttonSound.currentTime = 0;
-      buttonSound.play();
+    function unlockDoor() {
+      creakSound.currentTime = 0.5;
+      creakSound.play();
+      door.classList.add('open');
+      key.style.display = 'none';
+      carpet.style.display = 'none';
 
-      startCooldown();
+      setTimeout(() => {
+        door.style.display = 'none';
+        startShuffle();
+      }, 1500);
+    }
 
+    // shuffle images and button logic
+    const images = ['image1.png', 'image2.png', 'image3.png'];
+    let correctIndex;
+
+    function startShuffle() {
       shuffleContainer.style.display = 'flex';
       shuffleText.style.opacity = '0';
+
       shuffleImagesRow.innerHTML = '';
+      correctIndex = Math.floor(Math.random() * images.length);
 
-      const imgSources = [
-        'img1.png',
-        'img2.png',
-        'img3.png',
-        'img4.png',
-        'img5.png',
-        'img6.png',
-      ];
-
-      // shuffle images array
-      const shuffled = imgSources.sort(() => Math.random() - 0.5);
-
-      shuffled.forEach((src, idx) => {
+      images.forEach((src, i) => {
         const img = document.createElement('img');
         img.src = src;
-        img.classList.add('shuffleImg');
+        img.className = 'shuffleImg';
+        img.dataset.index = i;
         img.style.opacity = '0';
-        img.style.transition = 'opacity 1s ease';
+        img.style.borderColor = 'black';
+        img.addEventListener('click', onShuffleClick);
+        shuffleImagesRow.appendChild(img);
 
-        // Fade in images staggered
         setTimeout(() => {
           img.style.opacity = '1';
-        }, idx * 200);
-
-        img.addEventListener('click', () => {
-          // fade out the clicked image
-          img.style.transition = 'opacity 1.2s ease';
-          img.style.opacity = '0';
-
-          // If the clicked image is the button location (say first one)
-          if (idx === 0) {
-            shuffleText.textContent = 'you found the button! click it!';
-            btn.disabled = false;
-            // keep button visible
-          } else {
-            shuffleText.textContent = 'wrong one, wait for cooldown.';
-          }
-        });
-
-        shuffleImagesRow.appendChild(img);
+        }, i * 600);
       });
 
-      // fade in shuffleText after images fade in
       setTimeout(() => {
         shuffleText.style.opacity = '1';
-      }, shuffled.length * 200);
+      }, images.length * 600 + 300);
+
+      btn.style.opacity = '0';
+      btn.style.pointerEvents = 'none';
+      btn.style.transform = 'translateX(-50%) scale(0.1)';
+      foundText.style.opacity = '0';
+    }
+
+    function onShuffleClick(e) {
+      if (checkCooldown()) return;
+
+      const selectedIndex = parseInt(e.target.dataset.index);
+      if (selectedIndex === correctIndex) {
+        // correct guess - reveal button
+        btn.textContent = 'secret buton.. 🤫🤫';
+        btn.disabled = true;
+        btn.style.pointerEvents = 'auto';
+
+        // fade in button with scale
+        btn.style.opacity = '1';
+        btn.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        btn.style.transform = 'translateX(-50%) scale(1)';
+
+        foundText.style.opacity = '1';
+
+        // position found text above button
+        foundText.style.left = btn.style.left;
+        foundText.style.top = `calc(${btn.style.top} - 50px)`;
+
+        // disable image clicks and hide shuffle container after delay
+        shuffleImagesRow.querySelectorAll('img').forEach(img => img.removeEventListener('click', onShuffleClick));
+
+        setTimeout(() => {
+          shuffleContainer.style.display = 'none';
+        }, 2000);
+
+        localStorage.removeItem(COOLDOWN_KEY);
+        cooldownMessage.style.display = 'none';
+
+      }
+
+      function onShuffleClick(e) {
+  if (checkCooldown()) return;
+
+  const selectedIndex = parseInt(e.target.dataset.index);
+  if (selectedIndex === correctIndex) {
+    // Fade out all images
+    shuffleImagesRow.querySelectorAll('.shuffleImg').forEach(img => {
+      img.style.transition = 'opacity 1s ease';
+      img.style.opacity = '0';
     });
 
-    // Question mark hover
-    questionMark.addEventListener('mouseenter', () => {
-      speechBubble.style.display = 'block';
-    });
-    questionMark.addEventListener('mouseleave', () => {
-      speechBubble.style.display = 'none';
+    // Proceed with revealing the button and other actions...
+  } else {
+    // Handle incorrect selection...
+  }
+}
+
+
+      } else {
+        // wrong guess - start cooldown
+        localStorage.setItem(COOLDOWN_KEY, Date.now() + 30000);
+        showCooldown(30);
+      }
+    }
+
+    // queston mark toggle speech bubble
+    questionMark.addEventListener('click', () => {
+      speechBubble.style.display = speechBubble.style.display === 'block' ? 'none' : 'block';
     });
 
-    // Initial cooldown check on load
-    checkCooldown();
+    // init on load
+    window.onload = () => {
+      checkCooldown();
+    };
   </script>
+
 </body>
 </html>
