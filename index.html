@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Secret Buton</title>
+  <title>Secret Door with Key</title>
   <style>
     body {
+      margin: 0;
       background: #111;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      overflow: hidden;
     }
 
     #door {
       position: absolute;
       width: 300px;
-      height: auto;
       transform-origin: left center;
       transition: transform 1s ease, opacity 1s ease;
       z-index: 2;
@@ -44,30 +44,125 @@
     #secretBtn.show {
       opacity: 1;
     }
+
+    #carpet {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 100px;
+      cursor: pointer;
+      transition: transform 0.5s ease;
+      z-index: 3;
+    }
+
+    #carpet.shake {
+      animation: shake 0.5s;
+    }
+
+    #carpet.lifted {
+      transform: translateY(-80px);
+    }
+
+    #key {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      width: 40px;
+      display: none;
+      cursor: pointer;
+      z-index: 4;
+    }
+
+    @keyframes shake {
+      0% { transform: rotate(0deg); }
+      25% { transform: rotate(5deg); }
+      50% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+      100% { transform: rotate(0deg); }
+    }
   </style>
 </head>
 <body>
 
-  <img id="door" src="door.png" alt="Secret Door" onclick="openDoor()">
+  <img id="door" src="door.png" alt="Secret Door">
   <button id="secretBtn" onclick="playSound()">Secret Buton.. 🤫🤫</button>
+  <img id="carpet" src="carpet.png" alt="Carpet">
+  <img id="key" src="key.png" alt="Key">
   <audio id="lolSound" src="sound.mp3"></audio>
 
   <script>
-    function openDoor() {
-      const door = document.getElementById('door');
-      const btn = document.getElementById('secretBtn');
-      door.classList.add('open');
-      setTimeout(() => {
-        door.style.display = 'none';
-        btn.classList.add('show');
-      }, 1000);
-    }
+    const carpet = document.getElementById('carpet');
+    const key = document.getElementById('key');
+    const door = document.getElementById('door');
+    const btn = document.getElementById('secretBtn');
+
+    const concreteSound = new Audio('concrete.mp3');
+    const creakSound = new Audio('creak.mp3');
+
+    let carpetClicks = 0;
+    let draggingKey = false;
+
+    carpet.addEventListener('click', () => {
+      carpetClicks++;
+      if (carpetClicks === 1) {
+        carpet.classList.add('shake');
+        setTimeout(() => carpet.classList.remove('shake'), 500);
+      }
+      if (carpetClicks === 3) {
+        carpet.classList.add('lifted');
+        key.style.display = 'block';
+        playConcreteSegment();
+      }
+    });
+
+    key.addEventListener('mousedown', () => {
+      draggingKey = true;
+    });
+
+    document.addEventListener('mouseup', () => {
+      draggingKey = false;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (draggingKey) {
+        key.style.left = (e.pageX - 20) + 'px';
+        key.style.top = (e.pageY - 20) + 'px';
+
+        const keyRect = key.getBoundingClientRect();
+        const doorRect = door.getBoundingClientRect();
+
+        const overlapping = (
+          keyRect.left < doorRect.right &&
+          keyRect.right > doorRect.left &&
+          keyRect.top < doorRect.bottom &&
+          keyRect.bottom > doorRect.top
+        );
+
+        if (overlapping) {
+          door.classList.add('open');
+          playCreakSegment();
+          key.style.display = 'none';
+          setTimeout(() => btn.classList.add('show'), 1000);
+        }
+      }
+    });
 
     function playSound() {
       const audio = document.getElementById('lolSound');
       audio.pause();
       audio.currentTime = 1;
       audio.play();
+    }
+
+    function playConcreteSegment() {
+      concreteSound.currentTime = 3;
+      concreteSound.play();
+      setTimeout(() => concreteSound.pause(), 500);
+    }
+
+    function playCreakSegment() {
+      creakSound.currentTime = 0.5;
+      creakSound.play();
     }
   </script>
 
