@@ -2,7 +2,7 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8" />
-  <title>clicker Game</title>
+  <title>Clicker Game</title>
   <style>
     body {
       text-align: center;
@@ -15,6 +15,10 @@
       position: relative;
       height: 100vh;
     }
+    #money {
+      color: #4caf50;
+      font-weight: 700;
+    }
     button {
       padding: 15px 30px;
       font-size: 18px;
@@ -22,51 +26,48 @@
       cursor: pointer;
       border: none;
       border-radius: 12px;
-      background: linear-gradient(145deg, #4a90e2, #357abd);
+      background: linear-gradient(145deg, #6e6e6e, #4a4a4a);
       color: white;
-      box-shadow: 0 4px 15px rgba(53, 122, 189, 0.6);
       transition: box-shadow 0.3s ease, border 0.3s ease;
       position: relative;
       min-width: 180px;
       font-weight: 600;
+      outline: none;
     }
     button:hover {
-      box-shadow: 0 0 12px 2px #a6c8ff;
-      border: 2px solid #a6c8ff;
+      box-shadow: 0 0 10px 3px #8f8f8f;
+      border: 2px solid #8f8f8f;
       transition: box-shadow 0.4s ease, border 0.4s ease;
     }
     #golden, #luckBoost {
       position: fixed;
-      padding: 15px 25px;
-      font-size: 22px;
-      font-weight: 700;
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      font-weight: 900;
       border-radius: 50%;
-      box-shadow: 0 0 10px 3px;
       cursor: pointer;
       user-select: none;
       display: none;
       z-index: 9999;
       transition: opacity 0.5s ease;
-      color: black;
       text-align: center;
-      line-height: 1;
+      line-height: 70px;
+      font-family: sans-serif;
+      font-weight: 700;
+      outline: none;
     }
     #golden {
       background: gold;
+      color: black;
+      background: radial-gradient(circle, #ffd700 60%, #b8860b 100%);
       box-shadow: 0 0 15px 5px #ffec7b;
-      width: 70px;
-      height: 70px;
-      font-size: 24px;
-      font-weight: 900;
     }
     #luckBoost {
       background: #3cc13c;
-      box-shadow: 0 0 15px 5px #84f284;
-      width: 70px;
-      height: 70px;
-      font-size: 24px;
-      font-weight: 900;
       color: white;
+      background: radial-gradient(circle, #4caf50 60%, #2e7d32 100%);
+      box-shadow: 0 0 15px 5px #84f284;
     }
     #win {
       font-size: 32px;
@@ -74,6 +75,7 @@
       display: none;
       margin-top: 30px;
       font-weight: 700;
+      user-select: none;
     }
     h1, h2 {
       user-select: none;
@@ -86,7 +88,7 @@
 </head>
 <body>
   <h1>Money $<span id="money">0</span></h1>
-  <button onclick="clickMain()">click me</button>
+  <button onclick="clickMain()">Click Me</button>
 
   <h2>Shop</h2>
   <div id="shop">
@@ -96,6 +98,7 @@
     <button id="upgrade4" onclick="buyUpgrade(4)">Upgrade 4 $<span id='cost4'>500</span> +40 click</button><br/>
     <button id="upgrade5" onclick="buyUpgrade(5)">Upgrade 5 $<span id='cost5'>1200</span> +100 click</button><br/>
     <button id="potion" onclick="buyPotion()">Potion x2 boost 10s 100</button><br/>
+    <button id="ultraLuck" onclick="buyUltraLuck()">ULTRA LUCK BOOST!! 10000% 5s 1000</button><br/>
   </div>
 
   <button id="golden" onclick="goldenClick()">Golden</button>
@@ -109,8 +112,8 @@
   let boost = 1
   let boosting = false
   let luckBoosting = false
+  let ultraLuckBoosting = false
 
-  // upgrades data: id -> {cost, increment}
   const upgrades = {
     1: { cost: 30, increment: 1 },
     2: { cost: 80, increment: 5 },
@@ -149,10 +152,25 @@
       boosting = true
       updateDisplay()
       setTimeout(() => {
-        boost = luckBoosting ? 10 : 1
+        boost = ultraLuckBoosting ? 100 : luckBoosting ? 10 : 1
         boosting = false
         updateDisplay()
       }, 10000)
+    }
+  }
+
+  function buyUltraLuck() {
+    const ultraCost = 1000
+    if (money >= ultraCost && !ultraLuckBoosting) {
+      money -= ultraCost
+      ultraLuckBoosting = true
+      boost = 100
+      updateDisplay()
+      setTimeout(() => {
+        boost = boosting ? 2 : luckBoosting ? 10 : 1
+        ultraLuckBoosting = false
+        updateDisplay()
+      }, 5000)
     }
   }
 
@@ -165,17 +183,16 @@
   function luckClick() {
     if (luckBoosting) return
     luckBoosting = true
-    boost = 10 // 1000% boost
+    boost = 10
     hideButton('luckBoost')
     updateDisplay()
     setTimeout(() => {
-      boost = boosting ? 2 : 1
+      boost = ultraLuckBoosting ? 100 : boosting ? 2 : 1
       luckBoosting = false
       updateDisplay()
     }, 3000)
   }
 
-  // helps to show/hide buttons
   function showButton(id, x, y) {
     const btn = document.getElementById(id)
     btn.style.left = x + 'px'
@@ -191,12 +208,10 @@
     }, 500)
   }
 
-  // generates random position on screen avoiding UI area (top center)
   function randomPosition(btnSize=70) {
     const padding = 10
     const w = window.innerWidth
     const h = window.innerHeight
-    // avoides top center area (0,0 to w, 200px)
     let x, y
     do {
       x = Math.random() * (w - btnSize - padding * 2) + padding
@@ -205,7 +220,6 @@
     return {x, y}
   }
 
-  // show th golden button randomly 10-20s intervals
   function spawnGolden() {
     if (Math.random() < 0.4) {
       const pos = randomPosition()
@@ -216,7 +230,6 @@
     setTimeout(spawnGolden, delay)
   }
 
-  // Show luck boost randomly 15-30s intervals
   function spawnLuck() {
     if (!luckBoosting && Math.random() < 0.3) {
       const pos = randomPosition()
@@ -227,7 +240,6 @@
     setTimeout(spawnLuck, delay)
   }
 
-  // Init
   updateDisplay()
   spawnGolden()
   spawnLuck()
