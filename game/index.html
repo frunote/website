@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>clicker game</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; margin-top: 40px; }
+    button { padding: 15px 30px; font-size: 20px; margin: 10px; cursor: pointer; }
+    #golden { display: none; background: gold; color: black; font-weight: bold; }
+    #win { font-size: 30px; color: green; display: none; }
+  </style>
+</head>
+<body>
+  <h1>Money $<span id="money">0</span></h1>
+  <button onclick="clickMain()">Click Me</button>
+
+  <h2>Shop</h2>
+  <button onclick="buyUpgrade()">Upgrade $<span id='upgradeValue'>1</span> click 50</button>
+  <button onclick="buyPotion()">Potion x2 boost 10s 100</button>
+
+  <br><br>
+  <button id="golden" onclick="goldenClick()">golden Click 500</button>
+
+  <h1 id="win">your did it</h1>
+
+  <script>
+    let money = 0
+    let perClick = 1
+    let upgradeCost = 50
+    let potionCost = 100
+    let boost = 1
+    let boosting = false
+
+    function updateDisplay() {
+      document.getElementById('money').textContent = money.toLocaleString()
+      document.getElementById('upgradeValue').textContent = perClick * boost
+      if (money >= 1000000) document.getElementById('win').style.display = 'block'
+    }
+
+    function clickMain() {
+      money += perClick * boost
+      updateDisplay()
+    }
+
+    function buyUpgrade() {
+      if (money >= upgradeCost) {
+        money -= upgradeCost
+        perClick++
+        upgradeCost = Math.floor(upgradeCost * 1.5)
+        updateDisplay()
+      }
+    }
+
+    function buyPotion() {
+      if (money >= potionCost && !boosting) {
+        money -= potionCost
+        boost = 2
+        boosting = true
+        updateDisplay()
+        setTimeout(() => {
+          boost = 1
+          boosting = false
+          updateDisplay()
+        }, 10000)
+      }
+    }
+
+    function goldenClick() {
+      money += 500
+      document.getElementById('golden').style.display = 'none'
+      updateDisplay()
+    }
+
+    setInterval(() => {
+      if (Math.random() < 0.3) {
+        const btn = document.getElementById('golden')
+        btn.style.display = 'inline-block'
+        setTimeout(() => btn.style.display = 'none', 5000)
+      }
+    }, 5000)
+
+    updateDisplay()
+  </script>
+</body>
+</html>
