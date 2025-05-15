@@ -3,26 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <title>Secret Buton</title>
+  <style>
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #door {
+      position: absolute;
+      width: 300px;
+      height: auto;
+      transform-origin: left center;
+      transition: transform 1s ease, opacity 1s ease;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    #door.open {
+      transform: rotateY(-100deg);
+      opacity: 0;
+    }
+
+    #secretBtn {
+      font-size: 24px;
+      padding: 20px 40px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #222, #444);
+      color: white;
+      cursor: pointer;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    #secretBtn.show {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body>
-  <button onclick="playLOL()">Secret Buton.. 🤫🤫</button>
+
+  <img id="door" src="door.png" alt="Secret Door" onclick="openDoor()">
+  <button id="secretBtn" onclick="playSound()">Secret Buton.. 🤫🤫</button>
   <audio id="lolSound" src="sound.mp3"></audio>
 
   <script>
-    function playLOL() {
+    function openDoor() {
+      const door = document.getElementById('door');
+      const btn = document.getElementById('secretBtn');
+      door.classList.add('open');
+      setTimeout(() => {
+        door.style.display = 'none';
+        btn.classList.add('show');
+      }, 1000);
+    }
+
+    function playSound() {
       const audio = document.getElementById('lolSound');
-      if (audio.readyState >= 1) {
-        audio.pause();
-        audio.currentTime = 1;
-        audio.play();
-      } else {
-        audio.addEventListener('loadedmetadata', function () {
-          audio.pause();
-          audio.currentTime = 1;
-          audio.play();
-        }, { once: true });
-      }
+      audio.pause();
+      audio.currentTime = 1;
+      audio.play();
     }
   </script>
+
 </body>
 </html>
