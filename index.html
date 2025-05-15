@@ -38,7 +38,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 200px;
+      width: 300px;
+      height: auto;
       cursor: pointer;
       transition: opacity 0.5s;
     }
@@ -49,6 +50,7 @@
       right: 20px;
       width: 100px;
       cursor: pointer;
+      transition: all 0.5s;
     }
 
     #key {
@@ -133,6 +135,17 @@
       display: none;
       z-index: 1000;
     }
+
+    #cooldownTimer {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      font-size: 18px;
+      background: rgba(255, 0, 0, 0.3);
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -149,6 +162,7 @@
   </div>
   <button id="btn">Secret Buton.. 🤫🤫</button>
   <div id="youFound">you found me!</div>
+  <div id="cooldownTimer"></div>
   <audio id="sound" src="sound.mp3"></audio>
   <audio id="concrete" src="concrete.mp3"></audio>
   <audio id="creak" src="creak.mp3"></audio>
@@ -158,7 +172,6 @@
   <img id="jeffImage" src="jefff.png" />
 
   <script>
-    //queston mark clicker cherish is dumb
     const egg = document.getElementById('egg');
     document.getElementById('question').addEventListener('click', () => {
       egg.style.display = 'block';
@@ -179,10 +192,12 @@
     const jeffImage = document.getElementById('jeffImage');
     const youFound = document.getElementById('youFound');
     const buttonSound = document.getElementById('buttonSound');
+    const cooldownTimer = document.getElementById('cooldownTimer');
     let correctIndex = Math.floor(Math.random() * 3);
     let clicks = 0;
     let holding = false;
     let cooldownEnd = 0;
+    let cooldownInterval = null;
 
     carpet.addEventListener('click', () => {
       clicks++;
@@ -190,10 +205,12 @@
       setTimeout(() => carpet.style.transform = 'rotate(-5deg)', 100);
       setTimeout(() => carpet.style.transform = 'rotate(0deg)', 200);
       if (clicks >= 3) {
-        carpet.style.transition = 'all 0.5s';
-        carpet.style.bottom = '150px';
         concrete.currentTime = 3;
         concrete.play();
+        carpet.style.bottom = '70px';
+        setTimeout(() => carpet.style.bottom = '20px', 2000);
+        key.style.left = (carpet.offsetLeft + 25) + 'px';
+        key.style.top = (carpet.offsetTop - 50) + 'px';
         key.style.display = 'block';
       }
     });
@@ -238,6 +255,17 @@
       }
     });
 
+    function updateCooldownDisplay() {
+      const timeLeft = Math.ceil((cooldownEnd - Date.now()) / 1000);
+      if (timeLeft > 0) {
+        cooldownTimer.style.display = 'block';
+        cooldownTimer.textContent = `Try again in ${timeLeft}s`;
+      } else {
+        cooldownTimer.style.display = 'none';
+        clearInterval(cooldownInterval);
+      }
+    }
+
     shuffleImgs.forEach(img => {
       img.addEventListener('click', (e) => {
         if (Date.now() < cooldownEnd) return;
@@ -250,6 +278,8 @@
           setTimeout(() => youFound.style.opacity = '0', 1000);
         } else {
           cooldownEnd = Date.now() + 30000;
+          updateCooldownDisplay();
+          cooldownInterval = setInterval(updateCooldownDisplay, 1000);
         }
       });
     });
