@@ -16,6 +16,7 @@
       font-family: Arial, sans-serif;
       color: white;
       position: relative;
+      perspective: 1200px;
     }
 
     #door {
@@ -27,8 +28,22 @@
       cursor: pointer;
     }
     #door.open {
-      transform: rotateY(-100deg);
-      opacity: 0;
+      animation: zoomInDoor 1.5s forwards ease-in;
+    }
+
+    @keyframes zoomInDoor {
+      0% {
+        transform: rotateY(0deg) scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: rotateY(-90deg) scale(1.2);
+        opacity: 1;
+      }
+      100% {
+        transform: rotateY(-100deg) scale(2);
+        opacity: 0;
+      }
     }
 
     #secretBtn {
@@ -43,12 +58,25 @@
       opacity: 0;
       transition: opacity 1s ease, border-color 0.4s ease;
       z-index: 10;
+      user-select: none;
+      left: 50%;
+      top: 60%;
+      transform: translateX(-50%);
+      user-select: none;
+      white-space: nowrap;
     }
     #secretBtn.show {
       opacity: 1;
     }
     #secretBtn:hover {
       border-color: white;
+      transition: border-color 0.4s ease;
+    }
+
+    /* You found me! fade */
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
     #carpet {
@@ -94,35 +122,60 @@
     }
 
     #shuffleContainer {
-      position: absolute;
-      bottom: 150px;
-      right: 20px;
-      width: 320px;
-      height: 120px;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 400px;
+      height: 160px;
+      transform: translate(-50%, -50%);
       display: none;
-      gap: 10px;
+      gap: 15px;
       z-index: 20;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #shuffleText {
+      font-size: 16px;
+      margin-bottom: 8px;
+      text-align: center;
+      font-style: italic;
+      max-width: 360px;
+      user-select: none;
+    }
+
+    .shuffleImagesRow {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      width: 100%;
     }
 
     .shuffleImg {
-      width: 100px;
-      height: 100px;
+      width: 120px;
+      height: 120px;
       cursor: pointer;
       border: 2px solid transparent;
-      border-radius: 8px;
-      transition: border-color 0.3s ease;
+      border-radius: 12px;
+      transition: border-color 0.3s ease, opacity 1s ease, transform 0.4s ease;
       user-select: none;
+      opacity: 0;
+      position: relative;
+      box-shadow: 0 0 8px #0005;
+      background: #222;
     }
     .shuffleImg:hover {
       border-color: #fff;
+      transform: scale(1.1);
+      z-index: 30;
     }
 
     #cooldownMessage {
-      position: absolute;
-      bottom: 280px;
-      right: 20px;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       color: #f44;
       font-weight: bold;
       font-size: 18px;
@@ -131,9 +184,10 @@
       background: rgba(0,0,0,0.7);
       padding: 8px 12px;
       border-radius: 6px;
+      user-select: none;
     }
 
-    /* question mark and speech bubble */
+    /* question mark with it speechbuclbe */
 
     #questionMark {
       position: fixed;
@@ -176,6 +230,19 @@
       border-bottom-color: #222;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
     }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    /* Shuffle animation */
+    @keyframes shuffleMove {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-15px); }
+      50% { transform: translateX(15px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
   </style>
 </head>
 <body>
@@ -185,7 +252,10 @@
   <img id="carpet" src="carpet.png" alt="Carpet" />
   <img id="key" src="key.png" alt="Key" draggable="false" />
 
-  <div id="shuffleContainer"></div>
+  <div id="shuffleContainer">
+    <div id="shuffleText">The button is behind one of them... Choose wisely, or wait for eternity... (not really)</div>
+    <div class="shuffleImagesRow"></div>
+  </div>
   <div id="cooldownMessage">Wait 30 seconds before trying again.</div>
 
   <div id="questionMark">?</div>
@@ -201,6 +271,8 @@
     const door = document.getElementById('door');
     const btn = document.getElementById('secretBtn');
     const shuffleContainer = document.getElementById('shuffleContainer');
+    const shuffleText = document.getElementById('shuffleText');
+    const shuffleImagesRow = shuffleContainer.querySelector('.shuffleImagesRow');
     const cooldownMessage = document.getElementById('cooldownMessage');
     const questionMark = document.getElementById('questionMark');
     const speechBubble = document.getElementById('speechBubble');
@@ -229,157 +301,212 @@
       }
     }
 
+    let cooldownInterval;
     function showCooldown(seconds) {
-      cooldownMessage.textContent = `Wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
       cooldownMessage.style.display = 'block';
+      cooldownMessage.textContent = `Wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
+      clearInterval(cooldownInterval);
+      cooldownInterval = setInterval(() => {
+        seconds--;
+        if (seconds <= 0) {
+          cooldownMessage.style.display = 'none';
+          clearInterval(cooldownInterval);
+          localStorage.removeItem(COOLDOWN_KEY);
+          btn.disabled = false;
+        } else {
+          cooldownMessage.textContent = `Wait ${seconds} second${seconds !== 1 ? 's' : ''} before trying again.`;
+        }
+      }, 1000);
     }
 
+    // Carpet click behavior
     carpet.addEventListener('click', () => {
-      if (carpetClicks >= 3) return;
-      carpetClicks++;
-      carpet.classList.add('shake');
-      setTimeout(() => carpet.classList.remove('shake'), 500);
-
-      if (carpetClicks === 3) {
-        carpet.classList.add('lifted');
-        key.style.display = 'block';
-        playConcreteSegment();
+      if (carpetClicks < 3) {
+        carpet.classList.add('shake');
+        setTimeout(() => carpet.classList.remove('shake'), 500);
+        carpetClicks++;
+        if (carpetClicks === 3) {
+          carpet.classList.add('lifted');
+          concreteSound.currentTime = 3;
+          concreteSound.play();
+          setTimeout(() => {
+            key.style.display = 'block';
+          }, 600);
+        }
       }
     });
 
-    key.addEventListener('mousedown', (e) => {
+    // Key drag logic - press & hold to drag
+    key.addEventListener('mousedown', e => {
       draggingKey = true;
       key.classList.add('dragging');
       offsetX = e.clientX - key.getBoundingClientRect().left;
       offsetY = e.clientY - key.getBoundingClientRect().top;
       e.preventDefault();
     });
-
-    document.addEventListener('mouseup', () => {
+    window.addEventListener('mouseup', () => {
       if (draggingKey) {
         draggingKey = false;
         key.classList.remove('dragging');
+        checkUnlock();
+      }
+    });
+    window.addEventListener('mousemove', e => {
+      if (draggingKey) {
+        key.style.left = `${e.clientX - offsetX}px`;
+        key.style.top = `${e.clientY - offsetY}px`;
+        key.style.position = 'fixed';
+        key.style.zIndex = 100;
       }
     });
 
-    document.addEventListener('mousemove', (e) => {
-      if (!draggingKey) return;
-
-      key.style.position = 'absolute';
-      key.style.left = (e.pageX - offsetX) + 'px';
-      key.style.top = (e.pageY - offsetY) + 'px';
-
+    // Unlock door if key overlaps door
+    function checkUnlock() {
       const keyRect = key.getBoundingClientRect();
       const doorRect = door.getBoundingClientRect();
-
-      const overlapping = (
+      if (
         keyRect.left < doorRect.right &&
         keyRect.right > doorRect.left &&
         keyRect.top < doorRect.bottom &&
         keyRect.bottom > doorRect.top
-      );
-
-      if (overlapping) {
-        door.classList.add('open');
-        playCreakSegment();
+      ) {
+        unlockDoor();
+      } else {
+        // reset key position
         key.style.display = 'none';
-        draggingKey = false;
-        key.classList.remove('dragging');
-        showShuffle();
+        carpetClicks = 0;
+        carpet.classList.remove('lifted');
+        key.style.position = 'absolute';
+        key.style.bottom = '40px';
+        key.style.right = '40px';
+        key.style.left = '';
+        key.style.top = '';
       }
+    }
+
+    function unlockDoor() {
+      creakSound.currentTime = 0.5;
+      creakSound.play();
+      door.classList.add('open');
+      key.style.display = 'none';
+      carpet.style.display = 'none';
+
+      setTimeout(() => {
+        door.style.display = 'none';
+        startShuffle();
+      }, 1500);
+    }
+
+    // Shuffle images and button run away logic
+    const images = ['image1.png', 'image2.png', 'image3.png'];
+    let correctIndex;
+    let runAwayInterval;
+    let foundMeInterval;
+
+    function startShuffle() {
+      shuffleContainer.style.display = 'flex';
+      shuffleImagesRow.innerHTML = '';
+      correctIndex = Math.floor(Math.random() * images.length);
+      btn.style.opacity = '1';
+      btn.style.position = 'absolute';
+      btn.style.top = 'calc(50% + 90px)';
+      btn.style.left = '50%';
+      btn.style.transform = 'translateX(-50%)';
+      btn.textContent = 'Secret Buton.. 🤫🤫';
+      btn.disabled = false;
+
+      // fade in images one by one
+      images.forEach((src, i) => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = 'shuffleImg';
+        img.dataset.index = i;
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.8s ease';
+        img.style.borderColor = 'transparent';
+        img.addEventListener('click', onShuffleClick);
+        shuffleImagesRow.appendChild(img);
+
+        setTimeout(() => {
+          img.style.opacity = '1';
+        }, i * 600);
+      });
+
+      // show the header text above images
+      shuffleText.style.opacity = '0';
+      shuffleText.style.transition = 'opacity 1s ease';
+      setTimeout(() => {
+        shuffleText.style.opacity = '1';
+      }, 1800);
+
+      runAwayButton();
+    }
+
+    // button runnin away horizontally behind images
+    let dir = 1;
+    let runCount = 0;
+    const runMax = 6;
+    function runAwayButton() {
+      runCount = 0;
+      dir = 1;
+      clearInterval(runAwayInterval);
+      runAwayInterval = setInterval(() => {
+        if (runCount >= runMax) {
+          btn.style.transform = 'translateX(-50%)';
+          clearInterval(runAwayInterval);
+          return;
+        }
+        btn.style.transform = `translateX(calc(-50% + ${dir * 70}px))`;
+        dir *= -1;
+        runCount++;
+      }, 400);
+    }
+
+    function onShuffleClick(e) {
+      if (checkCooldown()) return;
+
+      const selectedIndex = parseInt(e.target.dataset.index);
+      if (selectedIndex === correctIndex) {
+        // correct guess
+        btn.textContent = 'You found me!';
+        btn.disabled = true;
+        btn.style.animation = 'fadeInOut 1s infinite';
+        clearInterval(runAwayInterval);
+
+        // starts the cooldown reset after 3s fade cycles
+        setTimeout(() => {
+          btn.style.animation = '';
+          btn.textContent = 'Secret Buton.. 🤫🤫';
+          btn.disabled = false;
+          localStorage.removeItem(COOLDOWN_KEY);
+          cooldownMessage.style.display = 'none';
+        }, 3000);
+
+        // hide images
+        shuffleContainer.style.display = 'none';
+      } else {
+        // Wrong guess, start cooldown
+        localStorage.setItem(COOLDOWN_KEY, Date.now() + 30000);
+        showCooldown(30);
+      }
+    }
+
+    // Question mark toggle speech bubble
+    questionMark.addEventListener('click', () => {
+      speechBubble.style.display = speechBubble.style.display === 'block' ? 'none' : 'block';
     });
 
+    // Play button sound
     function playSound() {
-      lolSound.pause();
       lolSound.currentTime = 1;
       lolSound.play();
     }
 
-    function playConcreteSegment() {
-      concreteSound.currentTime = 3;
-      concreteSound.play();
-      setTimeout(() => concreteSound.pause(), 500);
-    }
-
-    function playCreakSegment() {
-      creakSound.currentTime = 0.5;
-      creakSound.play();
-    }
-
-    const images = [
-      'image1.png',
-      'image2.png',
-      'image3.png'
-    ];
-    const correctIndex = Math.floor(Math.random() * images.length);
-
-    function shuffleArray(arr) {
-      for (let i = arr.length -1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i +1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    function showShuffle() {
-      if (checkCooldown()) return;
-
-      shuffleContainer.innerHTML = '';
-      shuffleContainer.style.display = 'flex';
-
-      const idxs = [0,1,2];
-      shuffleArray(idxs);
-
-      idxs.forEach((idx) => {
-        const img = document.createElement('img');
-        img.src = images[idx];
-        img.className = 'shuffleImg';
-        img.dataset.index = idx;
-        img.title = `Image`;
-        img.addEventListener('click', onImageClick);
-        shuffleContainer.appendChild(img);
-      });
-
-      btn.style.opacity = 0;
-    }
-
-    function onImageClick(e) {
-      if (checkCooldown()) return;
-
-      const guess = parseInt(e.target.dataset.index);
-      if (guess === correctIndex) {
-        shuffleContainer.style.display = 'none';
-        btn.style.opacity = 1;
-        cooldownMessage.style.display = 'none';
-        alert('You found the Secret Buton!');
-      } else {
-        const cooldownUntil = Date.now() + 30000;
-        localStorage.setItem(COOLDOWN_KEY, cooldownUntil);
-        shuffleContainer.style.display = 'none';
-        cooldownMessage.style.display = 'block';
-
-        let interval = setInterval(() => {
-          if (!checkCooldown()) {
-            clearInterval(interval);
-          }
-        }, 1000);
-      }
-    }
-
+    // init when loadin
     window.onload = () => {
-      if (checkCooldown()) {
-        btn.style.opacity = 0;
-      }
+      btn.classList.add('show');
+      checkCooldown();
     };
-
-    // question mark toggle speech bubble thing also cherish u poop
-    questionMark.addEventListener('click', () => {
-      if (speechBubble.style.display === 'block') {
-        speechBubble.style.display = 'none';
-      } else {
-        speechBubble.style.display = 'block';
-      }
-    });
   </script>
 </body>
 </html>
